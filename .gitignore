@@ -1,0 +1,74 @@
+# Arquivos de credenciais - NUNCA SUBIR
+*.json
+.env
+env.txt
+firebase_key*
+credentials*
+config.json
+
+# Arquivos do Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+*.log
+*.sqlite
+*.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Variáveis de ambiente
+.env*
+!.env.example
+
+# Arquivos temporários
+*.tmp
+*.temp
+.cache/
+
+# Arquivos de backup
+*.bak
+*.backup
+
+# Arquivos de teste
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Arquivos específicos do Flask
+instance/
+.webassets-cache
+

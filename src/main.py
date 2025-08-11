@@ -26,7 +26,7 @@ Dependências:
 Para executar este serviço localmente:
 
     pip install Flask flask-cors reportlab
-    python backend_app.py ou python main.py
+    python backend_app.py
 
 O serviço será iniciado em http://localhost:5000. Use uma ferramenta como curl ou
 Postman para testar os endpoints.
@@ -59,6 +59,26 @@ app = Flask(__name__)
 # Permitir requisições de qualquer origem. Em produção, você pode restringir isso ao
 # domínio do seu front-end (por exemplo, https://producao-controle.vercel.app)
 CORS(app)
+
+# ---------------------------------------------------------------------------
+# Rota para servir o favicon personalizado da Jundu.
+#
+# Para exibir um ícone personalizado na aba do navegador quando o domínio do
+# backend é acessado diretamente, coloque um arquivo ``favicon.ico`` dentro
+# da pasta ``static`` do projeto (por exemplo, em ``src/static/favicon.ico``) e
+# utilize a rota abaixo para servi-lo. O caminho ``static`` é relativo a este
+# arquivo ``main.py``. Caso você prefira armazenar o arquivo em outro
+# diretório, ajuste o caminho em ``os.path.join()``.
+@app.route('/favicon.ico')  # type: ignore[misc]
+def favicon() -> Any:
+    """Serve o favicon personalizado se existir; caso contrário, retorna 404."""
+    # Caminho para a pasta onde o favicon está armazenado
+    static_dir = os.path.join(os.path.dirname(__file__), 'static')
+    icon_path = os.path.join(static_dir, 'favicon.ico')
+    if os.path.isfile(icon_path):
+        return send_from_directory(static_dir, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    # Se não houver favicon, retorna 404 (o navegador usará um ícone padrão)
+    return '', 404
 
 # ---------------------------------------------------------------------------
 # Armazenamento na memória (apenas para demonstração)
@@ -414,59 +434,6 @@ def gerar_pdf() -> Any:
                      mimetype="application/pdf")
 
 # ---------------------------------------------------------------------------
-# Endpoint para gerar um PDF e salvá-lo no servidor retornando a URL
-#
-# Este endpoint combina as funcionalidades de gerar um PDF a partir dos dados
-# enviados em JSON e armazená-lo no diretório ``uploads`` com um nome único.
-# É útil quando o front‑end precisa apenas da URL do PDF sem fazer múltiplas
-# chamadas para geração e upload.
-@app.route("/api/generate-and-upload-pdf", methods=["POST"])
-def generate_and_upload_pdf() -> Any:
-    """
-    Gera um relatório em PDF a partir de dados JSON, salva o arquivo em disco e
-    retorna a URL pública do PDF.
-
-    O cliente deve enviar um corpo JSON idêntico ao registro armazenado no
-    Firestore (ou qualquer outro formato usado pelo seu front-end). Este
-    endpoint constrói um PDF dinamicamente usando o reportlab, salva o arquivo
-    no diretório ``uploads`` com um nome baseado em UUID e responde com a URL
-    onde o PDF pode ser baixado. Caso não haja dados no corpo da requisição,
-    retorna um erro 400.
-    """
-    dados = request.get_json(silent=True)
-    if not dados:
-        return jsonify({"success": False, "error": "Nenhum dado fornecido"}), 400
-
-    # Constrói o PDF em memória usando SimpleDocTemplate
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter,
-                            rightMargin=36, leftMargin=36,
-                            topMargin=36, bottomMargin=36)
-    elementos = _build_pdf_elements(dados)
-    try:
-        doc.build(elementos)
-    except Exception as build_err:
-        print(f"Erro ao construir PDF: {build_err}")
-        return jsonify({"success": False, "error": "Erro ao construir PDF"}), 500
-    buffer.seek(0)
-
-    # Gera nome único e salva o PDF no diretório de uploads
-    unique_name = f"{uuid.uuid4().hex}.pdf"
-    save_path = os.path.join(UPLOAD_FOLDER, unique_name)
-    try:
-        with open(save_path, "wb") as f:
-            f.write(buffer.getvalue())
-    except Exception as save_err:
-        print(f"Erro ao salvar arquivo: {save_err}")
-        return jsonify({"success": False, "error": "Erro ao salvar arquivo"}), 500
-
-    # Constrói a URL pública para o arquivo salvo
-    base_url = request.url_root.rstrip('/')
-    file_url = f"{base_url}/uploads/{unique_name}"
-
-    return jsonify({"success": True, "url": file_url}), 201
-
-# ---------------------------------------------------------------------------
 # Endpoint para receber PDFs gerados pelo front-end e disponibilizá-los via URL
 #
 # Este endpoint espera que o cliente envie um arquivo PDF usando multipart/form-data
@@ -528,9 +495,7 @@ def uploaded_file(filename: str) -> Any:
     permissões antes de servir o arquivo.
     """
     try:
-        # Usa as_attachment=False para permitir que o PDF seja exibido inline no
-        # navegador em vez de forçar o download. Ajuste conforme a necessidade.
-        return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=False)
+        return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
     except FileNotFoundError:
         return jsonify({"success": False, "error": "Arquivo não encontrado"}), 404
 

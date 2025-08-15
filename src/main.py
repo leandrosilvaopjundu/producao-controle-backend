@@ -16,17 +16,35 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def generate_and_upload_pdf():
     try:
         data = request.json
-        # Nome único para o PDF
         filename = f"{uuid.uuid4().hex}.pdf"
         filepath = os.path.join(UPLOAD_FOLDER, filename)
 
-        # Criar PDF simples
         c = canvas.Canvas(filepath, pagesize=letter)
         c.drawString(100, 750, f"Relatório de Produção - {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         if isinstance(data, dict):
             for idx, (key, value) in enumerate(data.items()):
                 c.drawString(100, 730 - (idx * 20), f"{key}: {value}")
         c.save()
+
+        file_url = request.url_root.rstrip('/') + '/uploads/' + filename
+        return jsonify({"success": True, "url": file_url}), 201
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# NOVO: Upload de PDF gerado no frontend
+@app.route('/api/upload-pdf', methods=['POST'])
+def upload_pdf():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "Nenhum arquivo enviado"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"success": False, "error": "Nome de arquivo inválido"}), 400
+
+        filename = f"{uuid.uuid4().hex}.pdf"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
 
         file_url = request.url_root.rstrip('/') + '/uploads/' + filename
         return jsonify({"success": True, "url": file_url}), 201
